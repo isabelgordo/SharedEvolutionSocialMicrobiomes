@@ -1,11 +1,12 @@
-// This code simulates the accumulation of deleterious and beneficial mutations in a clonal population of fixed size Npop
+// This code simulates the accumulation of deleterious and beneficial mutations in a clonal population of fixed size Npop with 2 demes
 // Deleterious mutations occur at a rate U, beneficial mutations at a rate Ub
-// the effects of deleterious mutations are taken from a Exponential distribution of mean 1/Sd
-// the effects of beneficial mutations are taken from a Exponential distribution of mean 1/Sa
-// the number of mutations and the mean fitness of teh population is recorded in a file after 1000 and 2000 generations, 3 replicates are done per set of parameters
+// the effects of deleterious mutations are fixed effect Sd
+// the effects of beneficial mutations are fixed effect Sa
+// a given number of migrants (nmig) is exchaged between the demes
+// seed is the seed for random number generator (a large random integer)
 //
-// to compile the code type g++ MRdelben.cpp -o MRdelben -lm
-// to run the code type ./MRdelben Npop Ud Ub meanSd meanSa
+// to compile the code type g++ MRSocialSingleSnew.cpp -o MRSocialSingleSnew -lm
+// to run the code type ./MRSocialSingleSnew seed Npop Ud Ub Sd Sa nmig
 
 #include<math.h>
 #include<iostream>
@@ -123,8 +124,7 @@ int i1=0;
 
   
   conf=0;
-    TSample=1500;
-  //popfitaverage=0;
+    TSample=tmax;
  
   
   while( (++conf)<=config )
@@ -138,7 +138,7 @@ int i1=0;
             auxFM[k]=0;auxDELM[k]=0;auxBENM[k]=0;auxFM1[k]=0;auxDELM1[k]=0;auxBENM1[k]=0;
             for(i=0;i<Genomesite;i++){auxSITEBENM[k][i]=0;auxSITEBENM1[k][i]=0;}
         }
-  //      printf(" after fitinit %d %lf \n", Npop,sequence1.F[Npop]);
+ 
         
         
        
@@ -146,25 +146,12 @@ int i1=0;
       while( t<tmax )
 	{
 	  t++;
-   /*     printf(" before mut \n");
-        for(k=1;k<=Npop;k++){
-            printf("%d \t",k);
-            for(i=1;i<=Genomesite;i++) printf(" %d \t", sequence.SITEBEN[k][i]);
-            printf("\n");
-            }*/
-
-  //     printf("before mutsel %d \t",t);
+   
 	  mutationselection(&sequence,Npop,t,Genomesite);
       mutationselection(&sequence1,Npop,t,Genomesite);
         
         if((t%TSample)==0){
-           /* for(k=1;k<=Npop;k++){
-                printf("%d \t",k);
-                for(i=1;i<=Genomesite;i++) printf(" %d %d \t", sequence.SITEBEN[k][i], sequence1.SITEBEN[k][i]);
-    //            printf("\n %d \t",Npop+k);
-     //           for(i=1;i<=Genomesite;i++) printf(" %d \t", sequence1.SITEBEN[k][i]);
-                printf("\n");
-                } */
+         
             // make stats for calculating frequency of parallel mutations
             int  contafreq=0;
             int contafreq1=0;
@@ -218,10 +205,7 @@ int i1=0;
             
         }// close printing
         
- //       printf("after mutsel \t");
-  //      for( k=1; k<=Npop; k++ )printf("%d %lf %d %d %lf %d %d\n",k,((double)sequence.F[k]), sequence.NMUTDEL[k], sequence.NMUTBEN[k],((double)sequence1.F[k]), sequence1.NMUTDEL[k], sequence1.NMUTBEN[k]);
-        
-        //nmig=(int)(ran2()*MIG);
+ 
         nmig=poisson(MIG);
         if(nmig>nmigmax)nmig=nmigmax;
         // make the first nmig individulas migrate from pop 1 to pop2 and vice versa
@@ -237,13 +221,7 @@ int i1=0;
         for(k=0;k<nmig;k++){sequence.F[k]=auxFM1[k];sequence.NMUTDEL[k]=auxDELM1[k];sequence.NMUTBEN[k]=auxBENM1[k];for(i=1;i<=Genomesite;i++)sequence.SITEBEN[k][i]=auxSITEBENM1[k][i];}
         // replace info of migrants from pop2 to pop1
         for(k=0;k<nmig;k++){sequence1.F[k]=auxFM[k];sequence1.NMUTDEL[k]=auxDELM[k];sequence1.NMUTBEN[k]=auxBENM[k];for(i=1;i<=Genomesite;i++)sequence1.SITEBEN[k][i]=auxSITEBENM[k][i];}
-        
- //      printf("after migration\n");
- //      for( k=1; k<=Npop; k++ )printf("%d %lf %d %d %lf %d %d\n",k,((double)sequence.F[k]), sequence.NMUTDEL[k], sequence.NMUTBEN[k],((double)sequence1.F[k]), sequence1.NMUTDEL[k], sequence1.NMUTBEN[k]);
-        
-        
-        
-        
+                
           
 	} // close cycle for generations
   
@@ -253,13 +231,13 @@ int i1=0;
     delete[] auxFM;
     delete[] auxDELM;
     delete[] auxBENM;
-  //  for(int k=0; k<Npop; k++) delete[] auxSITEBENM[k];
+ 
   
     
     delete[] auxFM1;
     delete[] auxDELM1;
     delete[] auxBENM1;
-//    for(int k=0; k<Npop; k++) delete[] auxSITEBENM1[k];
+
 
     
     
@@ -303,8 +281,7 @@ void mutationselection(sequencia *sequence, int Npop, int t, int Genomesite)
   mut = sequence->U;
   mutb = sequence->Ub;
   
-   // printf("Genomesite %d \n",Genomesite);
-    
+ 
     // introduce mutation
     for( cont=0; cont<Npop; cont++ )
     {
@@ -318,7 +295,7 @@ void mutationselection(sequencia *sequence, int Npop, int t, int Genomesite)
         auxDEL[cont]= auxDEL[cont]+m;
         fitness=auxF[cont];
         for (i=1; i<=m; i++)
-        {//r = ran2(); sdel = -log(1.-r)*sequence->sd;
+        {
             fitness *= (1-sequence->sd);
         }
         auxF[cont]=fitness;
@@ -330,11 +307,9 @@ void mutationselection(sequencia *sequence, int Npop, int t, int Genomesite)
             if(auxSITEBEN[cont][auxsite]==0)
             {
                 auxSITEBEN[cont][auxsite]=1;
-                //r = ran2(); saux = -log(1.-r)*sequence->samedio;
                 fitness *= (1+sequence->samedio);auxBEN[cont]= auxBEN[cont]+1;
             }
-            
-   //         printf("in ind %d site %d  \n", cont,auxsite);
+           
          }
         auxF[cont]=fitness;
        
@@ -382,11 +357,8 @@ void mutationselection(sequencia *sequence, int Npop, int t, int Genomesite)
   delete[] SauxDEL;
   delete[] SauxBEN;
     for(int k=0; k<Npop; k++) delete[] auxSITEBEN[k];
-    //   delete[] auxSITEBEN;
- //   delete[] *SauxSITEBEN;
-    for(int k=0; k<Npop; k++) delete[] SauxSITEBEN[k];
-    //    delete[] SauxSITEBEN;
     
+    for(int k=0; k<Npop; k++) delete[] SauxSITEBEN[k];
     
 
 }
